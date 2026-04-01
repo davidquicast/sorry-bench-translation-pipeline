@@ -1,0 +1,26 @@
+# Environment
+.venv/
+.env
+
+# Data files (generated locally or downloaded from HuggingFace)
+data/
+
+# HuggingFace local cache
+datasets/
+hub/datasets--*/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
