@@ -1,0 +1,13 @@
+# Minimal requirements for Cohere-only translation (no local models)
+cohere>=5.0
+datasets>=2.19
+pydantic>=2.7
+pyyaml>=6.0
+python-dotenv>=1.0
+tenacity>=8.2
+aiolimiter>=1.1
+rich>=13.7
+sacrebleu>=2.4
+fast-langdetect>=0.2
+pyarrow>=14.0
+huggingface-hub>=0.23
