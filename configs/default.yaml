@@ -1,0 +1,102 @@
+# Default configuration for the multilingual translation pipeline.
+# Override any value via CLI flags (e.g., --tier2-backend cohere).
+
+input:
+  source: "sorry-bench/sorry-bench-202503"
+  subset: null
+  split: "train"
+  source_text_column: "turns"
+  id_column: "id"
+  metadata_columns: ["category"]
+  source_language: "en"
+
+target_languages:
+  - ar  # Arabic
+  - bn  # Bengali
+  - de  # German
+  - fr  # French
+  - hi  # Hindi
+  - ja  # Japanese
+  - ru  # Russian
+  - es  # Spanish
+  - zh  # Chinese Simplified
+
+tiers:
+  tier1:
+    enabled: true       # Always true (non-negotiable)
+    backend: nllb
+    model: auto         # Auto-select by available VRAM
+    batch_size: 32
+    max_length: 512
+    device: auto
+
+  tier2:
+    enabled: true
+    backend: cohere
+    fallback_order: [openai, gemini]
+    model:
+      cohere: command-a
+      openai: gpt-4o-mini
+      anthropic: claude-3-5-haiku-latest
+      gemini: gemini-2.5-flash
+      local_hf: ModelSpace/GemmaX2-28-9B-v0.1
+    temperature: 0.0
+    max_concurrent: 10
+    use_batch_api: false
+    rate_limits:
+      cohere: 10.0
+      openai: 50.0
+      anthropic: 10.0
+      gemini: 30.0
+      google_translate: 20.0
+      deepl: 10.0
+      azure_translate: 20.0
+      amazon_translate: 20.0
+
+  tier3:
+    enabled: true
+    metrics:
+      - comet
+      - chrf
+      - backtranslation
+      - gemba
+      - langdetect
+      - safety_consistency
+    comet_model: "Unbabel/wmt22-cometkiwi-da"
+    gemba_backend: openai
+    gemba_model: gpt-4o-mini
+    backtranslation_backend: nllb
+    thresholds:
+      comet_min: 0.7
+      chrf_min: 30.0
+      bertscore_min: 0.8
+      gemba_min: 50.0
+      langdetect_confidence: 0.8
+
+retry:
+  max_attempts: 5
+  backoff_multiplier: 1.0
+  backoff_max: 60.0
+  jitter: true
+
+checkpoint:
+  enabled: true
+  directory: ./checkpoints
+  save_every_n: 100
+  format: jsonl
+
+output:
+  directory: ./output
+  format: parquet
+  include_all_tiers: true
+  push_to_hub: false
+  hub_repo_id: null
+  hub_token_env: HF_TOKEN
+
+reporting:
+  output_path: ./output/report.json
+  flagged_csv_path: ./output/flagged.csv
+
+logging:
+  level: INFO
+  file: ./logs/pipeline.log

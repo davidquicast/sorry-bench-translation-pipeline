@@ -1,0 +1,72 @@
+# SorryBench translation preset for XSafetyRep.
+#
+# Translates ~9,240 harmful prompts across 44 safety categories from
+# sorry-bench/sorry-bench-202503 into 9 languages for studying how
+# Tiny Aya encodes safety across languages.
+#
+# Usage:
+#   aya-safety translate --config configs/sorry-bench-202503.yaml
+#   aya-safety translate --config configs/sorry-bench-202503.yaml --tier2-enabled false
+#   aya-safety translate --config configs/sorry-bench-202503.yaml --target-languages ar,bn
+
+input:
+  source: "sorry-bench/sorry-bench-202503"
+  split: "train"
+  source_text_column: "turns"
+  id_column: "id"
+  metadata_columns: ["category"]
+  source_language: "en"
+
+target_languages:
+  - ar  # Arabic    (arb_Arab) — West Asia
+  - bn  # Bengali   (ben_Beng) — South Asia (hardest target language)
+  - de  # German    (deu_Latn) — Europe
+  - fr  # French    (fra_Latn) — Europe
+  - hi  # Hindi     (hin_Deva) — South Asia
+  - ja  # Japanese  (jpn_Jpan) — Asia Pacific
+  - ru  # Russian   (rus_Cyrl) — Europe
+  - es  # Spanish   (spa_Latn) — Europe
+  - zh  # Chinese   (zho_Hans) — Asia Pacific
+
+tiers:
+  tier1:
+    enabled: true
+    backend: nllb
+    model: auto
+    batch_size: 32
+    device: auto
+
+  tier2:
+    enabled: true
+    backend: cohere         # Researcher has Cohere credits
+    fallback_order: [openai, gemini]
+    model:
+      cohere: command-a     # Primary: best multilingual quality
+      openai: gpt-4o-mini   # Fallback: cheapest with good quality
+      gemini: gemini-2.5-flash
+    temperature: 0.0
+    max_concurrent: 10
+
+  tier3:
+    enabled: true
+    metrics: [comet, chrf, backtranslation, gemba, langdetect, safety_consistency]
+    thresholds:
+      comet_min: 0.7
+      chrf_min: 30.0
+      bertscore_min: 0.8
+      gemba_min: 50.0
+
+checkpoint:
+  enabled: true
+  directory: ./checkpoints
+  save_every_n: 100
+
+output:
+  directory: ./output/sorry-bench-202503
+  format: parquet
+  include_all_tiers: true
+  push_to_hub: false
+
+reporting:
+  output_path: ./output/sorry-bench-202503/report.json
+  flagged_csv_path: ./output/sorry-bench-202503/flagged.csv
