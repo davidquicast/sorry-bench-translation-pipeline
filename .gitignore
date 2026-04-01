@@ -3,7 +3,7 @@
 .env
 
 # Data files (generated locally or downloaded from HuggingFace)
-data/
+/data/
 
 # HuggingFace local cache
 datasets/
