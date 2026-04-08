@@ -6,9 +6,7 @@
 
 Translation pipeline for NLP safety research. Translates safety benchmarks across languages without data loss from LLM refusals.
 
-**Primary use case:** Translating [SorryBench](https://huggingface.co/datasets/sorry-bench/sorry-bench-202503) (Xie et al., ICLR 2025) into 9 languages for the [XSafetyRep](docs/safety%20representations%20across%20languages%20-%20tiny%20aya.pdf) project, which studies how [Tiny Aya](docs/tiny_aya_tech_report.pdf) (Abagyan et al., 2025; [arXiv 2506.10766](https://arxiv.org/abs/2506.10766)) encodes safety across languages.
-
-**Notable design detail:** One optional backend is [Aya Expanse](https://huggingface.co/CohereLabs/aya-expanse-8b) (Cohere), from the same model family as Tiny Aya: meaning the pipeline can use a model from the same family to translate the benchmark that will evaluate it.
+**Primary use case:** Translating [SorryBench](https://huggingface.co/datasets/sorry-bench/sorry-bench-202503) (Xie et al., ICLR 2025) into 9 languages for multilingual LLM safety research.
 
 **Generated datasets:**
 
@@ -302,7 +300,7 @@ Both notebooks will resume from their existing checkpoints and only process the 
 
 ---
 
-## Worked Example: Translating SorryBench for XSafetyRep
+## Worked Example: Translating SorryBench
 
 ### Step 0: Prepare the sample (run locally once)
 
@@ -593,7 +591,6 @@ Options:
 
 ## Bibliography
 
-- Abagyan, D. et al. (2025). Tiny Aya: Bridging Scale and Multilingual Depth. [arXiv 2506.10766](https://arxiv.org/abs/2506.10766)
 - Costa-jussà, M. R. et al. (2022). No Language Left Behind: Scaling Human-Centered Machine Translation. Meta AI. [arXiv 2207.04672](https://arxiv.org/abs/2207.04672)
 - Friedrich, F. et al. (2024). M-ALERT: A Multilingual Benchmark for Safety Evaluation. [arXiv 2412.15035](https://arxiv.org/abs/2412.15035)
 - He, Z. et al. (2023). Exploring Human-Like Translation Strategy with Large Language Models. [arXiv 2303.13780](https://arxiv.org/abs/2303.13780); TACL [doi.org/10.1162/tacl_a_00642](https://doi.org/10.1162/tacl_a_00642)
