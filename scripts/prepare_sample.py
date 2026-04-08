@@ -199,10 +199,14 @@ def stratified_sample(
         print(f"  Pool after excluding existing: {len(pool):,} records")
 
     if len(pool) < size:
-        raise ValueError(
-            f"Not enough records in pool ({len(pool):,}) to draw {size:,}. "
-            f"Try a smaller --size or --extend."
-        )
+        print(f"  Requested {size:,} but only {len(pool):,} available — taking all.")
+        size = len(pool)
+
+    if size == 0:
+        print("  Pool is empty — nothing to add.")
+        return pd.DataFrame(columns=["record_id", "question_id", "source_text", "category",
+                                     "category_name", "prompt_style", "translation_strategy",
+                                     "cipher_payload"])
 
     n_cats = pool["category"].nunique()
     base      = size // n_cats
@@ -385,8 +389,12 @@ def main() -> None:
             exclude_ids=existing_ids,
         )
 
+        if new_records.empty:
+            print(f"  Sample is already complete — {len(existing):,} records (of {len(df_source):,} available).")
+            sys.exit(0)
+
         combined = pd.concat([existing, new_records], ignore_index=True)
-        print(f"  New total: {len(combined):,} records")
+        print(f"  New total: {len(combined):,} records (of {len(df_source):,} available in SorryBench after filtering)")
 
         tmp = output_path.with_suffix(".tmp")
         combined.to_csv(tmp, index=False, encoding="utf-8")

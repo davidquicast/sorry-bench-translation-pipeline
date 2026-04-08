@@ -156,10 +156,11 @@ def load_done_keys(output_path: Path) -> tuple[set[str], list[dict]]:
         return set(), []
     with open(output_path, encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
-    # Keep only terminal-success rows; drop error rows so they are retried
+    # Keep only terminal rows; drop transient-error rows so they are retried.
+    # "too_long" is terminal — retrying will never succeed for that text.
     terminal_rows = [
         r for r in rows
-        if r.get("tier1_status") in ("ok", "success", "refused")
+        if r.get("tier1_status") in ("ok", "success", "refused", "too_long")
     ]
     # Key: record_id (unique per question+style) + target_lang
     done = {f"{r['record_id']}|{r['target_lang']}" for r in terminal_rows}
@@ -167,8 +168,7 @@ def load_done_keys(output_path: Path) -> tuple[set[str], list[dict]]:
 
 
 def model_for_lang(iso: str, primary: str) -> str:
-    if iso in TRANSLATE_UNSUPPORTED and primary == COHERE_MODELS["command-a-translate"]:
-        return COHERE_MODELS["command-a"]
+    # command-a-translate is disabled (rate-limited); always use command-a for all languages
     return primary
 
 
@@ -191,6 +191,18 @@ def _is_rate_limit(exc: Exception) -> bool:
         return True
     msg = str(exc).lower()
     return "429" in msg or "rate limit" in msg or "too many requests" in msg
+
+
+def _is_too_long(exc: Exception) -> bool:
+    """Return True when the request exceeds the model's context window.
+
+    These are terminal — retrying with the same text will always fail.
+    """
+    msg = str(exc).lower()
+    return any(kw in msg for kw in (
+        "too long", "context window", "token limit", "max tokens",
+        "context length", "too many tokens", "exceeds", "maximum context",
+    ))
 
 
 # ── Translation logic ─────────────────────────────────────────────────────────
@@ -293,6 +305,8 @@ async def translate_one(
                 )
                 translation = response.message.content[0].text.strip()
                 elapsed_ms  = round((time.perf_counter() - start) * 1000)
+                if not translation:
+                    raise ValueError("Empty response from API")
                 status      = "refused" if is_refusal(translation, source_text) else "ok"
                 if status == "refused":
                     translation = ""
@@ -301,6 +315,11 @@ async def translate_one(
             except Exception as exc:
                 elapsed_ms = round((time.perf_counter() - start) * 1000)
                 last_exc   = exc
+
+                # Context-length errors are terminal — retrying the same text always fails
+                if _is_too_long(exc):
+                    logger.warning("[TOO_LONG] %s (%s): %s", question_id, iso, exc)
+                    return _base_row("", model_name, "too_long", elapsed_ms, attempt)
 
                 if _is_retryable(exc) and attempt < max_retries:
                     continue  # will retry
@@ -410,9 +429,10 @@ async def run_translation(
 
         for i, coro in enumerate(asyncio.as_completed(tasks)):
             result = await coro
-            # Only persist terminal-success rows; errors are excluded so
-            # a re-run automatically picks them up again.
-            if not str(result.get("tier1_status", "")).startswith("error"):
+            # Persist all terminal rows (ok, success, refused, too_long).
+            # Transient errors are excluded so a re-run retries them automatically.
+            status = result.get("tier1_status", "")
+            if not str(status).startswith("error"):
                 all_rows.append(result)
             new_since_save += 1
             retry_total += result.get("retries", 0)

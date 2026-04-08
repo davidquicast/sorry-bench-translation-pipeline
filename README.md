@@ -12,8 +12,8 @@ Translation pipeline for NLP safety research. Translates safety benchmarks acros
 
 **Generated datasets:**
 
-- [sorry-bench-202503-cohere-translation-tier1](https://huggingface.co/datasets/tiny-aya-safety/sorry-bench-202503-cohere-translation-tier1): full translation log with metadata (strategy, status, latency, cipher payload) for 1,000 records x 9 languages
-- [sorry-bench-202503-multilingual](https://huggingface.co/datasets/tiny-aya-safety/sorry-bench-202503-multilingual): clean dataset mirroring SorryBench schema with a `language` column, 10,000 rows (1,000 records x 10 languages including English)
+- [sorry-bench-202503-cohere-translation-tier1](https://huggingface.co/datasets/tiny-aya-safety/sorry-bench-202503-cohere-translation-tier1): full translation log with metadata (strategy, status, latency, cipher payload) for 6,596 records x 9 languages = 59,364 rows
+- [sorry-bench-202503-multilingual](https://huggingface.co/datasets/tiny-aya-safety/sorry-bench-202503-multilingual): clean dataset mirroring SorryBench schema with a `language` column, 65,960 rows (6,596 records x 10 languages including English)
 
 > **Note on `src/aya_safety/`:** this package contains a full three-tier pipeline framework (NLLB backends, LLM refinement, QA metrics, CLI, checkpoint manager). It was written as a forward-looking architecture but has not been tested end-to-end. The scripts in `scripts/` and the notebooks in `notebooks/` are what was actually run and validated.
 
@@ -26,10 +26,10 @@ Translation pipeline for NLP safety research. Translates safety benchmarks acros
 pip install -r requirements-cohere.txt
 cp .env.example .env   # add COHERE_API_KEY and HF_TOKEN
 
-# 2. Generate sample (1 000 records, stratified across 44 categories)
-python scripts/prepare_sample.py --size 1000 --output data/sorry-bench-202503-sample.csv
+# 2. Generate sample (all available records, stratified across 44 categories)
+python scripts/prepare_sample.py --extend 9999 --output data/sorry-bench-202503-sample.csv
 
-# 3. Translate into 9 languages (strategy-aware, ~9 000 API calls)
+# 3. Translate into 9 languages (strategy-aware, ~50 000+ API calls)
 python scripts/translate_with_cohere.py --input data/sorry-bench-202503-sample.csv --output data/sorry-bench-202503-cohere-translation-tier1.csv
 # → data/sorry-bench-202503-cohere-translation-tier1.csv
 
@@ -318,7 +318,7 @@ Both notebooks read from this sample so they always translate the same records.
 
 ### Step 1: Estimate costs
 
-For 1,000 records × 9 languages = 9,000 translations:
+For 6,596 records × 9 languages = 59,364 translations:
 
 | Backend | Type | Estimated Cost | Refusal Risk |
 |---------|------|---------------|--------------|
@@ -516,15 +516,9 @@ If a local file is missing, it is downloaded automatically from HuggingFace usin
 
 ## Translating the Full SorryBench Dataset
 
-The 1,000-record sample covers all 44 categories and all 21 prompt styles. To translate the **full SorryBench dataset** (~9,240 records × 9 languages ≈ 83,000 API calls):
+The published datasets cover the full SorryBench dataset after filtering excluded styles: **6,596 records x 9 languages = 59,364 translations**, plus 6,596 English originals = 65,960 rows total.
 
-**Step 1: Generate the full sample:**
-
-```bash
-python scripts/prepare_sample.py --size 9240 --output data/sorry-bench-202503-full.csv
-```
-
-`--size 9240` covers the entire dataset (use `--size 99999` to be safe: the script caps at available records automatically).
+To reproduce from scratch:
 
 **Step 2: Translate:**
 

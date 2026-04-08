@@ -261,13 +261,22 @@ def build(
             if template and cipher_payload:
                 translation = reassemble_cipher_prompt(template, cipher_payload, source_text=source_text).strip()
 
-        if status in ("ok", "success") and translation:
+        # Include all terminal rows.
+        # refused / too_long → turns = "" (stored as [] after push_to_hf wrapping).
+        # Transient errors (status starts with "error:") are omitted so a re-run
+        # can retry and fill them in later.
+        _TERMINAL = {"ok", "success", "refused", "too_long"}
+        if status in _TERMINAL:
+            if status in ("ok", "success") and translation:
+                turns_text = normalize_turns_text(translation)
+            else:
+                turns_text = ""
             rows.append({
                 "question_id":   t["question_id"],
                 "category":      t["category"],
                 "prompt_style":  t["prompt_style"],
                 "language":      t["target_lang"],
-                "turns":         normalize_turns_text(translation),
+                "turns":         turns_text,
             })
 
     # Sort: question_id → prompt_style → language (en first, then alphabetical)
@@ -298,8 +307,8 @@ def push_to_hf(rows: list[dict], repo: str, hf_token: str | None) -> None:
         for col in int_cols:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
-        # Wrap turns as a single-element list to match SorryBench's original schema
-        df["turns"] = df["turns"].apply(lambda x: [x] if isinstance(x, str) else x)
+        # Wrap turns to match SorryBench's schema: ["text"] when present, [] when empty/refused
+        df["turns"] = df["turns"].apply(lambda x: [x] if (isinstance(x, str) and x) else [])
 
         features = Features({
             col: Value("int64") if col in int_cols
